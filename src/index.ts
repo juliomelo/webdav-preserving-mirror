@@ -23,17 +23,15 @@ const server = new webdav.WebDAVServer({
 
 server.setFileSystemSync('/', new PreservingMirrorFileSystem(mirror));
 
-let cnt = 0;
-
 server.afterRequest((arg, next) => {
-    if (arg.response.statusCode >= 400 || cnt++ % 1000 === 0) {
+    if (arg.response.statusCode >= 400) {
         let prefixo; 
 
         if ((arg.request as any).$ts) {
             const dif = new Date().getTime() - (arg.request as any).$ts;
-            prefixo = `${cnt} [${dif}ms] >>`;
+            prefixo = `[${dif}ms] >>`;
         } else {
-            prefixo = `${cnt} [${new Date().toString()}] >>`;
+            prefixo = `[${new Date().toString()}] >>`;
         }
 
         console.log(prefixo, arg.request.method, arg.request.url, '>', arg.response.statusCode, arg.response.statusMessage);

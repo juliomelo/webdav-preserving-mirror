@@ -2,7 +2,7 @@ import { FileSystem, RequestContext, Path, CreateInfo, SimpleCallback, ReturnCal
 import { Writable, Readable } from "stream";
 import MirrorRepository from "./MirrorRepository";
 import { stat, open, createReadStream, mkdir, close, createWriteStream, rename, access, Stats } from "fs";
-import { O_CREAT } from "constants";
+import { O_CREAT, R_OK, W_OK } from "constants";
 
 /**
  * Exposes a read-write mirror file system, but preserving original
@@ -214,7 +214,20 @@ export default class PreservingMirrorFileSystem extends FileSystem {
     protected getStatProperty(path: Path, ctx: any, propertyName: string, callback: ReturnCallback<any>): void {
         const realPath = this.repository.getReadOnlyPath(path.toString());
 
-        this.stat(realPath, ctx).then(stat => callback(undefined, (stat as any)[propertyName]), err => callback(Errors.ResourceNotFound));
+        this.stat(realPath, ctx).then(stat => {
+            if (propertyName === 'mode') {
+                let mode = stat.mode;
+
+                // Overwrite write mode
+                if (mode & R_OK) {
+                    mode |= W_OK;
+                }
+
+                callback(undefined, mode)
+            } else {
+                callback(undefined, (stat as any)[propertyName]);
+            }
+        }, err => callback(Errors.ResourceNotFound));
     }
 
     protected getStatDateProperty(path: Path, ctx: any, propertyName: string, callback: ReturnCallback<number>): void {
